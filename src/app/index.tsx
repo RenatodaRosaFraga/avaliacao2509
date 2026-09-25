@@ -1,98 +1,264 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import {
+  Alert,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+type Resultado = {
+  carne: string;
+  bebida: string;
+  carneBase: string;
+  bebidaBase: string;
+  tipoDuracao: string;
+};
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+export default function App() {
+  const [adultos, setAdultos] = useState('');
+  const [criancas, setCriancas] = useState('');
+  const [horas, setHoras] = useState('');
+  const [resultado, setResultado] = useState<Resultado | null>(null);
+
+  const calcularChurrasco = () => {
+    Keyboard.dismiss();
+
+    const qtdAdultos = parseInt(adultos) || 0;
+    const qtdCriancas = parseInt(criancas) || 0;
+    const qtdHoras = parseFloat(horas) || 0;
+
+    if (qtdAdultos === 0 && qtdCriancas === 0) {
+      Alert.alert("Aviso ⚠", "Insira pelo menos um participante (adulto ou criança)!");
+      return;
+    }
+
+    if (qtdHoras <= 0) {
+      Alert.alert("Aviso ⚠", "Informe a duração da festa em horas!");
+      return;
+    }
+
+    let carneAdultoKg = 0.40;
+    let bebidaAdultoL = 1.20;
+    let tipoDuracao = "Consumo Padrão (< 6 horas)";
+
+    if (qtdHoras >= 6) {
+      carneAdultoKg = 0.65;
+      bebidaAdultoL = 2.00;
+      tipoDuracao = "Consumo Estendido (≥ 6 horas)";
+    }
+
+    const totalCarneAdultos = qtdAdultos * carneAdultoKg;
+    const totalCarneCriancas = qtdCriancas * (carneAdultoKg * 0.5);
+    const totalCarneGeral = totalCarneAdultos + totalCarneCriancas;
+
+    const totalBebidaAdultos = qtdAdultos * bebidaAdultoL;
+    const totalBebidaCriancas = qtdCriancas * (bebidaAdultoL * 0.5);
+    const totalBebidaGeral = totalBebidaAdultos + totalBebidaCriancas;
+
+    setResultado({
+      carne: totalCarneGeral.toFixed(2),
+      bebida: totalBebidaGeral.toFixed(2),
+      carneBase: (carneAdultoKg * 1000).toFixed(0),
+      bebidaBase: (bebidaAdultoL * 1000).toFixed(0),
+      tipoDuracao: tipoDuracao
+    });
+  };
+
+  const recomecar = () => {
+    setAdultos('');
+    setCriancas('');
+    setHoras('');
+    setResultado(null);
+    Keyboard.dismiss();
+  };
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.titulo}>🥩 Calculadora de Churrasco 🍻</Text>
+      <Text style={styles.subtitulo}>Planeje sua festa sem faltar nada!</Text>
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>👥 Total de Adultos:</Text>
+        <TextInput 
+          style={styles.input}
+          placeholder="Ex: 5"
+          placeholderTextColor="#888"
+          keyboardType="numeric"
+          value={adultos}
+          onChangeText={setAdultos}
+        />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <Text style={styles.label}>🧒 Total de Crianças:</Text>
+        <TextInput 
+          style={styles.input}
+          placeholder="Ex: 2"
+          placeholderTextColor="#888"
+          keyboardType="numeric"
+          value={criancas}
+          onChangeText={setCriancas}
+        />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+        <Text style={styles.label}>⏱ Duração da Festa (Horas):</Text>
+        <TextInput 
+          style={styles.input}
+          placeholder="Ex: 5"
+          placeholderTextColor="#888"
+          keyboardType="numeric"
+          value={horas}
+          onChangeText={setHoras}
+        />
+      </View>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <TouchableOpacity style={styles.botaoCalcular} onPress={calcularChurrasco}>
+        <Text style={styles.textoBotao}>Calcular Consumo 📋</Text>
+      </TouchableOpacity>
+
+      {(adultos !== '' || criancas !== '' || horas !== '' || resultado !== null) && (
+        <TouchableOpacity style={styles.botaoRecomecar} onPress={recomecar}>
+          <Text style={styles.textoBotaoRecomecar}>Recomeçar 🔄</Text>
+        </TouchableOpacity>
+      )}
+
+      {resultado !== null && (
+        <View style={styles.resultadoContainer}>
+          <Text style={styles.resultadoTitulo}>✨ Resultados do Churrasco ✨</Text>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🥩 Total de Alimentos</Text>
+            <Text style={styles.cardValue}>{resultado.carne} kg</Text>
+            <Text style={styles.cardSub}>Cota base adulto: {resultado.carneBase}g</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🥤 Total de Líquidos</Text>
+            <Text style={styles.cardValue}>{resultado.bebida} Litros</Text>
+            <Text style={styles.cardSub}>Cota base adulto: {resultado.bebidaBase}ml</Text>
+          </View>
+
+          <View style={styles.footerInfo}>
+            <Text style={styles.footerText}>💡 {resultado.tipoDuracao}</Text>
+          </View>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    flexGrow: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+    paddingTop: 50,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
     textAlign: 'center',
+    color: '#333',
+    marginBottom: 5,
   },
-  code: {
-    textTransform: 'uppercase',
+  subtitulo: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  inputContainer: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    elevation: 2,
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  botaoCalcular: {
+    backgroundColor: '#27ae60',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  textoBotao: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  botaoRecomecar: {
+    backgroundColor: '#e74c3c',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  textoBotaoRecomecar: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  resultadoContainer: {
+    marginTop: 10,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  resultadoTitulo: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#2c3e50',
+    marginBottom: 15,
+  },
+  card: {
+    backgroundColor: '#ecf0f1',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#34495e',
+  },
+  cardValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#27ae60',
+    marginVertical: 4,
+  },
+  cardSub: {
+    fontSize: 12,
+    color: '#7f8c8d',
+  },
+  footerInfo: {
+    marginTop: 5,
+    padding: 8,
+    backgroundColor: '#fff9c4',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 13,
+    color: '#f57f17',
+    fontWeight: '500',
   },
 });
